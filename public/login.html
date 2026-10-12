@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login · Copy Paste Text</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --fg:#1b1f24; --muted:#6b7280; --accent:#2563eb; --border:#d8dce2; --err:#dc2626; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1115; --card:#181b21; --fg:#e6e8eb; --muted:#9aa1ac; --accent:#3b82f6; --border:#2c313a; --err:#f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; background:var(--bg); color:var(--fg);
+         font:16px/1.4 system-ui, sans-serif; padding:16px; }
+  form { width:100%; max-width:340px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; }
+  h1 { margin:0 0 16px; font-size:20px; }
+  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+  input { width:100%; padding:10px 12px; font:inherit; color:inherit; background:var(--bg); border:1px solid var(--border); border-radius:8px; }
+  input:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  button { width:100%; margin-top:20px; padding:10px; font:inherit; font-weight:600; color:#fff; background:var(--accent); border:0; border-radius:8px; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  #err { color:var(--err); font-size:14px; min-height:20px; margin-top:12px; }
+</style>
+</head>
+<body>
+<form id="f">
+  <h1>📋 Copy Paste Text</h1>
+  <label for="u">Username</label>
+  <input id="u" name="username" autocomplete="username" required autofocus>
+  <label for="p">Password</label>
+  <input id="p" name="password" type="password" autocomplete="current-password" required>
+  <button id="b">Log in</button>
+  <div id="err" role="alert"></div>
+</form>
+<script>
+const f = document.getElementById('f'), err = document.getElementById('err'), b = document.getElementById('b');
+f.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  err.textContent = ''; b.disabled = true;
+  try {
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: f.username.value, password: f.password.value }),
+    });
+    if (r.ok) { location.href = '/'; return; }
+    err.textContent = (await r.json()).error || 'Login failed.';
+  } catch { err.textContent = 'Network error.'; }
+  b.disabled = false;
+});
+</script>
+</body>
+</html>

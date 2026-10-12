@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copy Paste Text</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --fg:#1b1f24; --muted:#6b7280; --accent:#2563eb; --border:#d8dce2; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1115; --card:#181b21; --fg:#e6e8eb; --muted:#9aa1ac; --accent:#3b82f6; --border:#2c313a; }
+  }
+  * { box-sizing: border-box; }
+  html, body { height:100%; margin:0; }
+  body { display:flex; flex-direction:column; background:var(--bg); color:var(--fg); font:16px/1.4 system-ui, sans-serif; padding:12px; gap:10px; }
+  header { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  h1 { font-size:18px; margin:0; flex:1; }
+  button { font:inherit; padding:8px 14px; color:var(--fg); background:var(--card); border:1px solid var(--border); border-radius:8px; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  textarea { flex:1; width:100%; resize:none; padding:12px; font:15px/1.5 ui-monospace, Menlo, Consolas, monospace; color:inherit; background:var(--card); border:1px solid var(--border); border-radius:10px; }
+  textarea:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  #status { font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 Copy Paste Text</h1>
+  <span id="status">Loading…</span>
+  <button id="paste">Paste</button>
+  <button id="copy" class="primary">Copy</button>
+  <button id="clear">Clear</button>
+  <button id="logout">Log out</button>
+</header>
+<textarea id="t" placeholder="Paste or type here. It saves automatically and shows up on all your devices." spellcheck="false" disabled></textarea>
+<script>
+const t = document.getElementById('t'), status = document.getElementById('status');
+let version = 0;      // server updatedAt we last saw
+let dirty = false;    // local edits not yet saved
+let saving = false;
+let timer;
+
+const setStatus = (s) => { status.textContent = s; };
+
+async function api(method, body) {
+  const r = await fetch('/api/note', {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body: body && JSON.stringify(body),
+  });
+  if (r.status === 401) { location.href = '/login'; throw new Error('logged out'); }
+  if (!r.ok) throw new Error((await r.json()).error || 'Request failed');
+  return r.json();
+}
+
+async function load() {
+  const n = await api('GET');
+  t.disabled = false;
+  if (!dirty && !saving && n.updatedAt !== version) {
+    const pos = t.selectionStart;
+    t.value = n.text;
+    t.setSelectionRange(pos, pos);
+  }
+  if (!dirty) version = n.updatedAt;
+  if (!dirty && !saving) setStatus('Synced');
+}
+
+async function save() {
+  if (saving) return;
+  saving = true; dirty = false; setStatus('Saving…');
+  try {
+    const n = await api('PUT', { text: t.value });
+    version = n.updatedAt;
+    setStatus(dirty ? 'Saving…' : 'Saved');
+  } catch (e) {
+    dirty = true; setStatus('Save failed — retrying');
+  }
+  saving = false;
+  if (dirty) { clearTimeout(timer); timer = setTimeout(save, 1500); }
+}
+
+t.addEventListener('input', () => {
+  dirty = true; setStatus('Editing…');
+  clearTimeout(timer); timer = setTimeout(save, 600);
+});
+
+async function flash(btn, msg) {
+  const old = btn.textContent; btn.textContent = msg;
+  setTimeout(() => { btn.textContent = old; }, 1200);
+}
+
+document.getElementById('copy').onclick = async (e) => {
+  try { await navigator.clipboard.writeText(t.value); }
+  catch { t.select(); document.execCommand('copy'); }
+  flash(e.target, 'Copied ✓');
+};
+
+document.getElementById('paste').onclick = async (e) => {
+  try {
+    const text = await navigator.clipboard.readText();
+    const s = t.selectionStart, end = t.selectionEnd;
+    t.setRangeText(text, s, end, 'end');
+    t.dispatchEvent(new Event('input'));
+    t.focus();
+  } catch { flash(e.target, 'Use Ctrl/Cmd+V'); t.focus(); }
+};
+
+document.getElementById('clear').onclick = () => {
+  if (!t.value || confirm('Clear the note?')) { t.value = ''; t.dispatchEvent(new Event('input')); }
+};
+
+document.getElementById('logout').onclick = async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/login';
+};
+
+load().catch(() => setStatus('Offline'));
+setInterval(() => load().catch(() => setStatus('Offline')), 3000);
+</script>
+</body>
+</html>

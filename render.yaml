@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: copy-paste-text
+    runtime: docker
+    plan: starter          # a persistent disk requires a paid plan
+    healthCheckPath: /healthz
+    disk:
+      name: notepad-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: APP_USERNAME
+        value: admin
+      - key: APP_PASSWORD
+        sync: false        # you'll be prompted to enter this on deploy
+      - key: SESSION_SECRET
+        generateValue: true
