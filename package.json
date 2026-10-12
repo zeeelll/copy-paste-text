@@ -4,7 +4,8 @@
   "description": "A tiny password-protected remote notepad for pasting and copying text between devices.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "deploy": "wrangler deploy"
   },
   "engines": {
     "node": ">=18"

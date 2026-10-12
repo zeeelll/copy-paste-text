@@ -23,6 +23,25 @@ APP_PASSWORD=choose-a-password npm start
 
 ## Deploy
 
+### Cloudflare Workers (free, recommended)
+`cloudflare/worker.js` + `wrangler.toml` run the same app on Cloudflare. The note is stored in a Durable Object, so it persists and syncs instantly, and the free plan is enough.
+
+**From the dashboard (no CLI):**
+1. Cloudflare dashboard → **Workers & Pages → Create → Import a repository**, pick this repo and branch.
+2. Deploy command: `npx wrangler deploy` (the default). Save and deploy.
+3. Open the new Worker → **Settings → Variables and Secrets** → add two **Secrets**: `APP_PASSWORD` (your password) and `SESSION_SECRET` (a long random string). Optionally set `APP_USERNAME` to change the username from `admin`.
+4. Visit the `*.workers.dev` URL shown on the Worker and log in.
+
+**From the CLI:**
+```sh
+npx wrangler login
+npx wrangler deploy
+npx wrangler secret put APP_PASSWORD
+npx wrangler secret put SESSION_SECRET
+```
+
+Local test: put `APP_PASSWORD=...` and `SESSION_SECRET=...` in a `.dev.vars` file and run `npx wrangler dev`.
+
 ### Render (easiest)
 1. Push this repo to GitHub.
 2. In Render: **New → Blueprint**, pick this repo. `render.yaml` sets up the Docker service and a 1 GB disk at `/data`.

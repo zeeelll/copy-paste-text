@@ -1,0 +1,26 @@
+name = "copy-paste-text"
+main = "cloudflare/worker.js"
+compatibility_date = "2025-01-01"
+
+# Login page and notepad UI. The worker serves them itself (after checking
+# the login), so every request runs the worker first.
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "none"
+run_worker_first = true
+
+[[durable_objects.bindings]]
+name = "NOTEPAD"
+class_name = "Notepad"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Notepad"]
+
+[vars]
+APP_USERNAME = "admin"
+
+# Set these as secrets (never put them in this file):
+#   npx wrangler secret put APP_PASSWORD
+#   npx wrangler secret put SESSION_SECRET
